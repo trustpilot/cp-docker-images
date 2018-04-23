@@ -78,14 +78,23 @@ RUN echo "===> Updating debian ....." \
     && pip install --no-cache-dir --upgrade pip==${PYTHON_PIP_VERSION} \
     && pip install --no-cache-dir git+https://github.com/confluentinc/confluent-docker-utils@v0.0.20 \
     && apt remove --purge -y git \
-    && echo "Installing Zulu OpenJDK ${ZULU_OPENJDK_VERSION}" \
-    && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9 \
-    && echo "deb http://repos.azulsystems.com/debian stable  main" >> /etc/apt/sources.list.d/zulu.list \
-    && apt-get -qq update \
-    && apt-get -y install zulu-${ZULU_OPENJDK_VERSION} \
-    && echo "===> Installing Kerberos Patch ..." \
-    && DEBIAN_FRONTEND=noninteractive apt-get -y install krb5-user \
-    && rm -rf /var/lib/apt/lists/* \
+    \
+    && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9 \	+    && echo "===> Adding webupd8 repository for Oracle JDK..."  \
+    && echo "deb http://repos.azulsystems.com/debian stable  main" >> /etc/apt/sources.list.d/zulu.list \	+    && echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee /etc/apt/sources.list.d/webupd8team-java.list \
+    && apt-get -qq update \	+    && echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee -a /etc/apt/sources.list.d/webupd8team-java.list \
+    && apt-get -y install zulu-${ZULU_OPENJDK_VERSION} \	+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 \
+    && echo "===> Installing Kerberos Patch ..." \	+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install krb5-user \	+    \
+    && rm -rf /var/lib/apt/lists/* \	+    && echo "===> Installing Oracle JDK 8 ..."   \
+    && echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections \
+    && echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections \
+    && DEBIAN_FRONTEND=noninteractive  apt-get install -y --force-yes \
+                    oracle-java8-installer \
+                    oracle-java8-set-default  \
+                    ca-certificates \
+    && rm -rf /var/cache/oracle-jdk8-installer \
+    && apt-get clean && rm -rf /tmp/* /var/lib/apt/lists/* \
+    \
     && echo "===> Adding confluent repository...${CONFLUENT_PACKAGES_REPO}/deb/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}" \
     && if [ "x$ALLOW_UNSIGNED" = "xtrue" ]; then echo "APT::Get::AllowUnauthenticated \"true\";" > /etc/apt/apt.conf.d/allow_unauthenticated; else curl -L ${CONFLUENT_PACKAGES_REPO}/deb/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/archive.key | apt-key add - ; fi \
     && echo "deb [arch=amd64] ${CONFLUENT_PACKAGES_REPO}/deb/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION} stable main" >> /etc/apt/sources.list
