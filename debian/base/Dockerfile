@@ -79,13 +79,12 @@ RUN echo "===> Updating debian ....." \
     && pip install --no-cache-dir git+https://github.com/confluentinc/confluent-docker-utils@v0.0.20 \
     && apt remove --purge -y git \
     \
-    && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9 \	+    && echo "===> Adding webupd8 repository for Oracle JDK..."  \
-    && echo "deb http://repos.azulsystems.com/debian stable  main" >> /etc/apt/sources.list.d/zulu.list \	+    && echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee /etc/apt/sources.list.d/webupd8team-java.list \
-    && apt-get -qq update \	+    && echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee -a /etc/apt/sources.list.d/webupd8team-java.list \
-    && apt-get -y install zulu-${ZULU_OPENJDK_VERSION} \	+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 \
-    && echo "===> Installing Kerberos Patch ..." \	+    && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get -y install krb5-user \	+    \
-    && rm -rf /var/lib/apt/lists/* \	+    && echo "===> Installing Oracle JDK 8 ..."   \
+    && echo "===> Adding webupd8 repository for Oracle JDK..."  \
+    && echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee /etc/apt/sources.list.d/webupd8team-java.list \
+    && echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee -a /etc/apt/sources.list.d/webupd8team-java.list \
+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 \
+    && apt-get update \
+    && echo "===> Installing Oracle JDK 8 ..."   \
     && echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections \
     && echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections \
     && DEBIAN_FRONTEND=noninteractive  apt-get install -y --force-yes \
