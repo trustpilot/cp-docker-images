@@ -90,7 +90,8 @@ endif
         docker tag $${image} ${DOCKER_REMOTE_REPOSITORY}/$${image#*/}; \
   done
 
-push-private: clean build-debian build-test-images tag-remote
+#push-private: clean build-debian build-test-images tag-remote
+push-private: clean build-debian tag-remote
 ifndef DOCKER_REMOTE_REPOSITORY
 	$(error DOCKER_REMOTE_REPOSITORY must be defined.)
 endif
@@ -108,7 +109,7 @@ push-public: clean build-debian
   done
 
 clean: clean-containers clean-images
-	rm -rf debian/base/include/etc/confluent/docker/docker-utils.jar
+	#rm -rf debian/base/include/etc/confluent/docker/docker-utils.jar
 
 venv: venv/bin/activate
 venv/bin/activate: tests/requirements.txt
