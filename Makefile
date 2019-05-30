@@ -12,7 +12,7 @@ CONFLUENT_VERSION ?= ${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}.${CON
 
 KAFKA_VERSION ?= 1.1.0
 
-COMPONENTS := base zookeeper kafka kafka-rest schema-registry kafka-connect-base kafka-connect enterprise-control-center kafkacat enterprise-replicator enterprise-kafka
+COMPONENTS := base zookeeper kafka kafka-rest schema-registry kafka-connect-base kafka-connect # enterprise-control-center kafkacat enterprise-replicator enterprise-kafka
 COMMIT_ID := $(shell git rev-parse --short HEAD)
 MYSQL_DRIVER_VERSION := 5.1.39
 
@@ -90,7 +90,8 @@ endif
         docker tag $${image} ${DOCKER_REMOTE_REPOSITORY}/$${image#*/}; \
   done
 
-push-private: clean build-debian build-test-images tag-remote
+#push-private: clean build-debian build-test-images tag-remote
+push-private: clean build-debian tag-remote
 ifndef DOCKER_REMOTE_REPOSITORY
 	$(error DOCKER_REMOTE_REPOSITORY must be defined.)
 endif
@@ -108,7 +109,7 @@ push-public: clean build-debian
   done
 
 clean: clean-containers clean-images
-	rm -rf debian/base/include/etc/confluent/docker/docker-utils.jar
+	#rm -rf debian/base/include/etc/confluent/docker/docker-utils.jar
 
 venv: venv/bin/activate
 venv/bin/activate: tests/requirements.txt
