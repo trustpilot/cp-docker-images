@@ -31,10 +31,10 @@ LABEL io.confluent.docker=true
 
 # Python
 ENV PYTHON_VERSION="2.7.9-1"
-ENV PYTHON_PIP_VERSION="8.1.2"
+ENV PYTHON_PIP_VERSION="20.3.4"
 
 # Confluent
-ENV SCALA_VERSION="2.11"
+ENV SCALA_VERSION="2.12"
 
 ARG KAFKA_VERSION=$KAFKA_VERSION
 ARG CONFLUENT_MAJOR_VERSION=$CONFLUENT_MAJOR_VERSION
@@ -56,7 +56,7 @@ ENV CONFLUENT_VERSION="$CONFLUENT_MAJOR_VERSION.$CONFLUENT_MINOR_VERSION.$CONFLU
 ENV CONFLUENT_DEB_VERSION="1"
 
 # Zulu
-ENV ZULU_OPENJDK_VERSION="8=8.17.0.3"
+ENV ZULU_OPENJDK_VERSION="8.0.302-1"
 
 # This affects how strings in Java class files are interpreted.  We want UTF-8 and this is the only locale in the
 # base image that supports it
@@ -68,27 +68,31 @@ RUN echo "===> Updating debian ....." \
     && echo "===> Installing curl wget netcat python...." \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
                 apt-transport-https \
+                software-properties-common \
                 curl \
+                gnupg-curl \
                 git \
                 wget \
                 netcat \
                 python=${PYTHON_VERSION} \
+                build-essential libssl-dev libffi-dev python-dev \
     && echo "===> Installing python packages ..."  \
-    && curl -fSL "https://bootstrap.pypa.io/get-pip.py" | python \
+    && curl -fSL "https://bootstrap.pypa.io/pip/2.7/get-pip.py" | python \
     && pip install --no-cache-dir --upgrade pip==${PYTHON_PIP_VERSION} \
-    && pip install --no-cache-dir git+https://github.com/confluentinc/confluent-docker-utils@v0.0.20 \
+    && pip install --no-cache-dir git+https://github.com/confluentinc/confluent-docker-utils@v0.0.42-python2 \
     && apt remove --purge -y git \
     && echo "Installing Zulu OpenJDK ${ZULU_OPENJDK_VERSION}" \
-    && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9 \
-    && echo "deb http://repos.azulsystems.com/debian stable  main" >> /etc/apt/sources.list.d/zulu.list \
-    && apt-get -qq update \
-    && apt-get -y install zulu-${ZULU_OPENJDK_VERSION} \
+    && rm /usr/share/ca-certificates/mozilla/DST_Root_CA_X3.crt \
+    && update-ca-certificates \
+    && apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 0x27BC0C8CB3D81623F59BDADCB1998361219BD9C9 \
+    && curl -O https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb \
+    && dpkg --install zulu-repo_1.0.0-2_all.deb \
+    && rm -f zulu-repo_1.0.0-2_all.deb \
+    && apt-get update \
+    && apt-get -y install "zulu8-ca-jdk-headless=${ZULU_OPENJDK_VERSION}" "zulu8-ca-jre-headless=${ZULU_OPENJDK_VERSION}" \
     && echo "===> Installing Kerberos Patch ..." \
     && DEBIAN_FRONTEND=noninteractive apt-get -y install krb5-user \
-    && rm -rf /var/lib/apt/lists/* \
-    && echo "===> Adding confluent repository...${CONFLUENT_PACKAGES_REPO}/deb/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}" \
-    && if [ "x$ALLOW_UNSIGNED" = "xtrue" ]; then echo "APT::Get::AllowUnauthenticated \"true\";" > /etc/apt/apt.conf.d/allow_unauthenticated; else curl -L ${CONFLUENT_PACKAGES_REPO}/deb/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/archive.key | apt-key add - ; fi \
-    && echo "deb [arch=amd64] ${CONFLUENT_PACKAGES_REPO}/deb/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION} stable main" >> /etc/apt/sources.list
+    && rm -rf /var/lib/apt/lists/*
 
 ENV CUB_CLASSPATH=/etc/confluent/docker/docker-utils.jar
 COPY include/etc/confluent/docker /etc/confluent/docker

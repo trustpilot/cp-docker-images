@@ -14,10 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o nounset \
-    -o errexit \
-    -o verbose \
-    -o xtrace
+. /etc/confluent/docker/bash-config
 
 dub ensure-atleast-one KAFKA_REST_ZOOKEEPER_CONNECT KAFKA_REST_BOOTSTRAP_SERVERS
 dub ensure KAFKA_REST_HOST_NAME
@@ -30,9 +27,9 @@ then
   exit 1
 fi
 
-if [[ -n "${KAFKA_REST_JMX_OPTS-}" ]]
+if [[ -n "${KAFKAREST_JMX_OPTS-}" ]]
 then
-  if [[ ! $KAFKA_REST_JMX_OPTS == *"com.sun.management.jmxremote.rmi.port"*  ]]
+  if [[ ! $KAFKAREST_JMX_OPTS == *"com.sun.management.jmxremote.rmi.port"*  ]]
   then
     echo "KAFKA_REST_OPTS should contain 'com.sun.management.jmxremote.rmi.port' property. It is required for accessing the JMX metrics externally."
   fi

@@ -31,10 +31,10 @@ LABEL io.confluent.docker=true
 # # Python
 # # TODO: get this version
 # # ENV PYTHON_VERSION="2.7.9-1"
-ENV PYTHON_PIP_VERSION="9.0.1"
+ENV PYTHON_PIP_VERSION="20.1.1"
 
 # Confluent
-ENV SCALA_VERSION="2.11"
+ENV SCALA_VERSION="2.12"
 
 ARG KAFKA_VERSION=$KAFKA_VERSION
 ARG CONFLUENT_MAJOR_VERSION=$CONFLUENT_MAJOR_VERSION
@@ -73,48 +73,16 @@ RUN echo "===> Installing curl wget netcat python...." \
                 python
 
 RUN echo "===> Installing python packages ..."  \
-    && curl -fSL "https://bootstrap.pypa.io/get-pip.py" | python \
+    && curl -fSL "https://bootstrap.pypa.io/pip/2.7/get-pip.py" | python \
     && pip install --no-cache-dir --upgrade pip==${PYTHON_PIP_VERSION} \
-    && pip install --no-cache-dir git+https://github.com/confluentinc/confluent-docker-utils@v0.0.20 \
+    && pip install --no-cache-dir git+https://github.com/confluentinc/confluent-docker-utils@v0.0.40 \
     && yum remove -y git
 
 RUN echo "Installing Zulu OpenJDK ${ZULU_OPENJDK_VERSION}" \
     && rpm --import http://repos.azulsystems.com/RPM-GPG-KEY-azulsystems \
     && curl -o /etc/yum.repos.d/zulu.repo http://repos.azulsystems.com/rhel/zulu.repo \
-    && yum -q -y update \
-    && yum -q -y install zulu-${ZULU_OPENJDK_VERSION}
-
-RUN echo "===> Adding confluent repository...${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}" && \
-    if [ "x${ALLOW_UNSIGNED}" = "xtrue" ]; then \
-        echo "===> GPG signatures are disabled for SNAPSHOT builds..." \
-        && printf "[Confluent.dist] \n\
-name=Confluent repository (dist) \n\
-baseurl=${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/ \n\
-gpgcheck=0 \n\
-enabled=1 \n\
-\n\
-[Confluent] \n\
-name=Confluent repository \n\
-baseurl=${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/ \n\
-gpgcheck=0 \n\
-enabled=1 " > /etc/yum.repos.d/confluent.repo; \
-    else \
-        echo "===> Using Confluent's archive.key..." \
-        && rpm --import ${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/archive.key \
-        && printf "[Confluent.dist] \n\
-name=Confluent repository (dist) \n\
-baseurl=${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/ \n\
-gpgcheck=1 \n\
-gpgkey=${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/archive.key \n\
-enabled=1 \n\
-\n\
-[Confluent] \n\
-name=Confluent repository \n\
-baseurl=${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/ \n\
-gpgcheck=1 \n\
-gpgkey=${CONFLUENT_PACKAGES_REPO}/rpm/${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}/archive.key \n\
-enabled=1 " > /etc/yum.repos.d/confluent.repo; \
-    fi
+    && yum -y update \
+    && yum -y install zulu-${ZULU_OPENJDK_VERSION}
 
 ENV CUB_CLASSPATH=/etc/confluent/docker/docker-utils.jar
 COPY include/etc/confluent/docker /etc/confluent/docker

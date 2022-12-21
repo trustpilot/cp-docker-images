@@ -2,22 +2,22 @@
 -include local.make
 
 # Bump this on subsequent build, reset on new version or public release. Inherit from env for CI builds.
-BUILD_NUMBER ?= 3
+BUILD_NUMBER ?= 1
 
-CONFLUENT_MAJOR_VERSION ?= 4
-CONFLUENT_MINOR_VERSION ?= 1
+CONFLUENT_MAJOR_VERSION ?= 5
+CONFLUENT_MINOR_VERSION ?= 4
 CONFLUENT_PATCH_VERSION ?= 0
 
 CONFLUENT_VERSION ?= ${CONFLUENT_MAJOR_VERSION}.${CONFLUENT_MINOR_VERSION}.${CONFLUENT_PATCH_VERSION}
 
-KAFKA_VERSION ?= 1.1.0
+KAFKA_VERSION ?= 2.4.0
 
-COMPONENTS := base zookeeper kafka kafka-rest schema-registry kafka-connect-base kafka-connect enterprise-control-center kafkacat enterprise-replicator enterprise-kafka
+COMPONENTS := base zookeeper kafka server kafka-rest schema-registry kafka-connect-base kafka-connect server-connect-base server-connect enterprise-control-center kafkacat enterprise-replicator enterprise-replicator-executable enterprise-kafka kafka-mqtt
 COMMIT_ID := $(shell git rev-parse --short HEAD)
 MYSQL_DRIVER_VERSION := 5.1.39
 
 # Set this variable externally to point at a different repo, such as when building SNAPSHOT images
-CONFLUENT_PACKAGES_REPO ?= http://packages.confluent.io
+CONFLUENT_PACKAGES_REPO ?= https://packages.confluent.io
 
 # Set to false for public releases
 ALLOW_UNSIGNED ?= false
@@ -48,16 +48,14 @@ clean-images:
 
 debian/base/include/etc/confluent/docker/docker-utils.jar:
 	mkdir -p debian/base/include/etc/confluent/docker
-	cd java \
-	&& mvn clean compile package assembly:single -DskipTests \
-	&& cp target/docker-utils-${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL}-jar-with-dependencies.jar ../debian/base/include/etc/confluent/docker/docker-utils.jar \
-	&& cd -
+	mvn -U clean compile package -DskipTests \
+	&& cp target/docker-utils-${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL}-jar-with-dependencies.jar debian/base/include/etc/confluent/docker/docker-utils.jar
 
 build-debian: debian/base/include/etc/confluent/docker/docker-utils.jar
 	COMPONENTS="${COMPONENTS}" \
 	ALLOW_UNSIGNED=${ALLOW_UNSIGNED} \
 	CONFLUENT_PACKAGES_REPO=${CONFLUENT_PACKAGES_REPO} \
-    KAFKA_VERSION=${KAFKA_VERSION} \
+	KAFKA_VERSION=${KAFKA_VERSION} \
 	CONFLUENT_MVN_LABEL=${CONFLUENT_MVN_LABEL} \
 	CONFLUENT_DEB_LABEL=${CONFLUENT_DEB_LABEL} \
 	CONFLUENT_RPM_LABEL=${CONFLUENT_RPM_LABEL} \
@@ -116,14 +114,6 @@ venv/bin/activate: tests/requirements.txt
 	venv/bin/pip install -Ur tests/requirements.txt
 	touch venv/bin/activate
 
-test-docker-utils:
-	mkdir -p ../debian/base/include/etc/confluent/docker
-	cd java \
-	&& mvn clean compile package assembly:single \
-	&& src/test/bin/cli-test.sh \
-	&& cp target/docker-utils-${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL}-jar-with-dependencies.jar ../debian/base/include/etc/confluent/docker/docker-utils.jar \
-	&& cd -
-
 test-build: venv clean build-debian build-test-images
 	IMAGE_DIR=$(pwd) venv/bin/py.test tests/test_build.py -v
 
@@ -158,7 +148,6 @@ test-control-center: venv clean-containers build-debian build-test-images
 test-all: \
 	venv \
 	clean \
-	test-docker-utils \
 	build-debian \
 	build-test-images \
 	test-build \
